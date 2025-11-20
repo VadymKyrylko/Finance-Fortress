@@ -1,0 +1,33 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}
+    My accounts | Finance Fortress
+{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-primary">My financial accounts</h1>
+    
+    {% if accounts %}
+        <div class="row">
+            {% for account in accounts %}
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ account.name }}</h5>
+                            <p class="card-text fs-4 fw-bold">
+                                {{ account.balance }} {{ account.currency }}
+                            </p>
+                            {% if not account.include_in_total %}
+                                <span class="badge bg-secondary">Not considered</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            You don't have an account yet. Create your first one at <a href="/admin/">admin panel</a>.
+        </div>
+    {% endif %}
+{% endblock %}
