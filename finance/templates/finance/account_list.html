@@ -1,4 +1,4 @@
-{% extends 'finance/base.html' %}
+{% extends "finance/base.html" %}
 
 {% block title %}
 My accounts | Finance Fortress
@@ -68,6 +68,7 @@ My accounts | Finance Fortress
         <th scope="col">Description</th>
         <th scope="col">Account</th>
         <th scope="col" class="text-end">Amount</th>
+        <th scope="col" class="text-center">Actions</th>
       </tr>
       </thead>
       <tbody>
@@ -85,7 +86,14 @@ My accounts | Finance Fortress
 
         <td>{{ transaction.description|truncatechars:30 }}</td>
 
-        <td>{{ transaction.account.name }}</td>
+        <td>
+          {{ transaction.account.name }}
+
+          {% if transaction.target_account %}
+          <i class="bi bi-arrow-right-short text-muted mx-1"></i>
+          {{ transaction.target_account.name }}
+          {% endif %}
+        </td>
 
         <td class="text-end fw-bold">
           {% if transaction.type == 'INCOME' %}
@@ -93,7 +101,17 @@ My accounts | Finance Fortress
           {% elif transaction.type == 'EXPENSE' %}
           <span class="text-danger">-{{ transaction.amount }}</span>
           {% else %}
-          <span class="text-primary">{{ transaction.amount }}</span> {% endif %}
+          <span class="text-primary">{{ transaction.amount }}</span>
+          {% endif %}
+        </td>
+
+        <td class="text-center">
+          <a href="{% url 'transaction_update' transaction.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <a href="{% url 'transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+            <i class="bi bi-trash"></i>
+          </a>
         </td>
       </tr>
       {% endfor %}

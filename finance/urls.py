@@ -5,7 +5,7 @@ from finance.views import (
     AccountListView,
     CategoryCreateView,
     SignUpView,
-    TransactionCreateView,
+    TransactionCreateView, TransactionUpdateView, TransactionDeleteView,
 )
 
 urlpatterns = [
@@ -20,4 +20,6 @@ urlpatterns = [
     path(
         "categories/new", CategoryCreateView.as_view(), name="category_create"
     ),
+    path("transactions/<int:pk>/edit/", TransactionUpdateView.as_view(), name="transaction_update"),
+    path("transactions/<int:pk>/delete/", TransactionDeleteView.as_view(), name="transaction_delete"),
 ]

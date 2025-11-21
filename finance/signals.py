@@ -21,7 +21,7 @@ def update_balance_on_save(sender, instance, created, **kwargs):
         elif instance.type == "TRANSFER":
             account.balance -= amount
             if instance.target_account:
-                instance.target_account.balance -= amount
+                instance.target_account.balance += amount
                 instance.target_account.save()
         account.save()
 
