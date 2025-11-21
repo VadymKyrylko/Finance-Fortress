@@ -1,0 +1,24 @@
+{% extends 'finance/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} | Finance Fortress{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow p-4">
+      <h2 class="mb-4 text-primary">{{ title }}</h2>
+
+      <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'account_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-success">{{ btn_text|default:"Save" }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

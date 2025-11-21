@@ -48,3 +48,42 @@ class TransactionForm(forms.ModelForm):
             self.fields["target_account"].queryset = Account.objects.filter(
                 user=user
             )
+
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ("name", "currency", "balance", "include_in_total")
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Name (eg. Cash)",
+                }
+            ),
+            "currency": forms.Select(attrs={"class": "form-select"}),
+            "balance": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "0.00"}
+            ),
+            "include_in_total": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+        }
+
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ("name", "type", "icon")
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Name(eg. Food"}
+            ),
+            "type": forms.Select(attrs={"class": "form-select"}),
+            "icon": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Bootstrap icon class (eg. bi-cart)",
+                }
+            ),
+        }

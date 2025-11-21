@@ -5,11 +5,24 @@ My accounts | Finance Fortress
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="text-primary">My financial accounts</h1>
-  <a href="{% url 'transaction_create' %}" class="btn btn-success">
-    <i class="bi bi-plus-lg"></i> New Transaction
-  </a>
+<div>
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="text-primary mb-0">My financial accounts</h1>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'account_create' %}" class="btn btn-outline-primary">
+        <i class="bi bi-wallet2"></i> New Account
+      </a>
+
+      <a href="{% url 'category_create' %}" class="btn btn-outline-primary">
+        <i class="bi bi-tags"></i> New Category
+      </a>
+
+      <a href="{% url 'transaction_create' %}" class="btn btn-success">
+        <i class="bi bi-plus-lg"></i> New Transaction
+      </a>
+    </div>
+  </div>
 </div>
 {% if accounts %}
 <div class="row">
@@ -30,10 +43,19 @@ My accounts | Finance Fortress
   {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-info">
-  You don't have an account yet. Create your first one at <a href="/admin/">admin panel</a>.
+<div class="alert alert-info shadow-sm">
+  <h4 class="alert-heading"><i class="bi bi-info-circle"></i> Welcome!</h4>
+  <p>
+    You don't have any accounts or categories yet. To start tracking your finances, you need to set them up.
+  </p>
+  <hr>
+  <p class="mb-0">
+    <a href="{% url 'account_create' %}" class="btn btn-primary btn-sm">➕ Create Account</a>
+    <a href="{% url 'category_create' %}" class="btn btn-outline-primary btn-sm ms-2">➕ Create Category</a>
+  </p>
 </div>
-{% endif %} <h2 class="mt-5 mb-3">Last operations</h2>
+{% endif %}
+<h2 class="mt-5 mb-3">Last operations</h2>
 
 {% if transactions %}
 <div class="card shadow-sm">
