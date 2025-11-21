@@ -1,0 +1,35 @@
+{% extends "finance/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Signup | Finance Fortress{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-4">
+    <div class="card shadow border-0">
+      <div class="card-body p-4">
+        <h3 class="text-center mb-4 text-success">
+          <i class="bi bi-person-plus-fill"></i> Signup
+        </h3>
+
+        <form method="post">
+          {% csrf_token %}
+
+          {{ form|crispy }}
+
+          <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-success btn-lg">Create an account</button>
+          </div>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="text-center">
+          <p class="text-muted">Already have an account? <a href="{% url 'login' %}"
+                                                            class="text-decoration-none fw-bold">Login</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
