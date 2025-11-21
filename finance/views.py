@@ -3,8 +3,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView
 
-from finance.forms import TransactionForm
-from finance.models import Account, Transaction
+from finance.forms import AccountForm, CategoryForm, TransactionForm
+from finance.models import Account, Category, Transaction
 
 
 class AccountListView(LoginRequiredMixin, ListView):
@@ -45,3 +45,37 @@ class SignUpView(CreateView):
     form_class = UserCreationForm
     success_url = reverse_lazy("login")
     template_name = "registration/signup.html"
+
+
+class AccountCreateView(LoginRequiredMixin, CreateView):
+    model = Account
+    form_class = AccountForm
+    template_name = "finance/form_base.html"
+    success_url = reverse_lazy("account_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Create new Account"
+        context["btn_text"] = "Create Account"
+        return context
+
+
+class CategoryCreateView(LoginRequiredMixin, CreateView):
+    model = Category
+    form_class = CategoryForm
+    template_name = "finance/form_base.html"
+    success_url = reverse_lazy("account_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Create new Category"
+        context["btn_text"] = "Create Category"
+        return context
