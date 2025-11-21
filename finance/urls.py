@@ -1,4 +1,5 @@
 from django.urls import path
+
 from finance.views import AccountListView, TransactionCreateView
 
 urlpatterns = [
