@@ -1,8 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView
-from finance.models import Account, Transaction
+from django.views.generic import CreateView, ListView
+
 from finance.forms import TransactionForm
+from finance.models import Account, Transaction
 
 
 class AccountListView(LoginRequiredMixin, ListView):
@@ -12,6 +13,15 @@ class AccountListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Account.objects.filter(user=self.request.user).order_by("name")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["transactions"] = (
+            Transaction.objects.filter(user=self.request.user)
+            .select_related("category", "account")
+            .order_by("-date")[:10]
+        )
+        return context
 
 
 class TransactionCreateView(LoginRequiredMixin, CreateView):
