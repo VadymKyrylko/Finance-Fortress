@@ -138,6 +138,41 @@ class CategoryCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
+class CategoryListView(LoginRequiredMixin, ListView):
+    model = Category
+    template_name = "finance/category_list.html"
+    context_object_name = "categories"
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
+
+
+class CategoryUpdateView(LoginRequiredMixin, UpdateView):
+    model = Category
+    form_class = CategoryForm
+    template_name = "finance/form_base.html"
+    success_url = reverse_lazy("account_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Update existing Category"
+        context["btn_text"] = "Update Category"
+        return context
+
+
+class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = Category
+    template_name = "finance/category_confirm_delete.html"
+    success_url = reverse_lazy("category_list")
+
+    def get_queryset(self):
+        return Category.objects.filter(user=self.request.user)
+
+
 class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     model = Transaction
     template_name = "finance/form_base.html"
