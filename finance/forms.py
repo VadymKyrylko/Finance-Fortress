@@ -87,3 +87,33 @@ class CategoryForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class AnalyticsFilterForm(forms.Form):
+    TIME_RANGE_CHOICES = [
+        ("mom", "current month to previous month"),
+        ("yoy_month", "current month to same month last year"),
+        ("yoy_year", "current year to previous year"),
+    ]
+
+    comparison_type = forms.ChoiceField(
+        choices=TIME_RANGE_CHOICES,
+        required=False,
+        label="Comparison Period",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.none(),
+        required=False,
+        label="Category",
+        empty_label="All Categories",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["category"].queryset = Category.objects.filter(
+                user=user
+            )

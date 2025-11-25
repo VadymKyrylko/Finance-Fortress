@@ -3,9 +3,12 @@ from django.urls import path
 from finance.views import (
     AccountCreateView,
     AccountListView,
+    AnalyticsView,
     CategoryCreateView,
     SignUpView,
-    TransactionCreateView, TransactionUpdateView, TransactionDeleteView,
+    TransactionCreateView,
+    TransactionDeleteView,
+    TransactionUpdateView,
 )
 
 urlpatterns = [
@@ -20,6 +23,15 @@ urlpatterns = [
     path(
         "categories/new", CategoryCreateView.as_view(), name="category_create"
     ),
-    path("transactions/<int:pk>/edit/", TransactionUpdateView.as_view(), name="transaction_update"),
-    path("transactions/<int:pk>/delete/", TransactionDeleteView.as_view(), name="transaction_delete"),
+    path(
+        "transactions/<int:pk>/edit/",
+        TransactionUpdateView.as_view(),
+        name="transaction_update",
+    ),
+    path(
+        "transactions/<int:pk>/delete/",
+        TransactionDeleteView.as_view(),
+        name="transaction_delete",
+    ),
+    path("analytics/", AnalyticsView.as_view(), name="analytics"),
 ]
