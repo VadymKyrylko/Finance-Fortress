@@ -6,6 +6,8 @@ from finance.models import Transaction
 
 def apply_transaction_effect(transaction):
     """Applies the transaction's impact to balances (as when created)."""
+    transaction.account.refresh_from_db()
+
     if transaction.type == "INCOME":
         transaction.account.balance += transaction.amount
     elif transaction.type == "EXPENSE":
@@ -13,6 +15,7 @@ def apply_transaction_effect(transaction):
     elif transaction.type == "TRANSFER":
         transaction.account.balance -= transaction.amount
         if transaction.target_account:
+            transaction.target_account.refresh_from_db()
             transaction.target_account.balance += transaction.amount
             transaction.target_account.save()
     transaction.account.save()
@@ -20,6 +23,7 @@ def apply_transaction_effect(transaction):
 
 def revert_transaction_effect(transaction):
     """Undoes the transaction's effect on balances (as in deletion)."""
+    transaction.account.refresh_from_db()
     if transaction.type == "INCOME":
         transaction.account.balance -= transaction.amount
     elif transaction.type == "EXPENSE":
@@ -27,6 +31,7 @@ def revert_transaction_effect(transaction):
     elif transaction.type == "TRANSFER":
         transaction.account.balance += transaction.amount
         if transaction.target_account:
+            transaction.target_account.refresh_from_db()
             transaction.target_account.balance -= transaction.amount
             transaction.target_account.save()
 
