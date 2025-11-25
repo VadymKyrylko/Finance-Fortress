@@ -172,24 +172,25 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
 
         start_curr, end_curr, _, _ = self.get_date_ranges(comparison_type)
 
-        period_transactions = Transaction.objects.filter(
+        base_transactions = Transaction.objects.filter(
             user=self.request.user, date__range=(start_curr, end_curr)
         )
-
+        income_transactions = base_transactions.filter(type="INCOME")
+        expense_transactions = base_transactions.filter(type="EXPENSE")
         if category_id:
-            period_transactions = period_transactions.filter(
+            expense_transactions = base_transactions.filter(
                 category_id=category_id
             )
 
-        # --- For chart (Income vs Expense vs Balance) ---
+        # --- Chart (Income vs Expense vs Balance) ---
         total_income = (
-            period_transactions.filter(type="INCOME").aggregate(Sum("amount"))[
+            income_transactions.filter(type="INCOME").aggregate(Sum("amount"))[
                 "amount__sum"
             ]
             or 0
         )
         total_expense = (
-            period_transactions.filter(type="EXPENSE").aggregate(
+            expense_transactions.filter(type="EXPENSE").aggregate(
                 Sum("amount")
             )["amount__sum"]
             or 0
@@ -212,7 +213,7 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
 
         # --- EXPENSES BY CATEGORIES ---
         expenses_by_cat = (
-            period_transactions.filter(type="EXPENSE")
+            expense_transactions.filter(type="EXPENSE")
             .values("category__name")
             .annotate(total=Sum("amount"))
             .order_by("-total")
@@ -231,25 +232,31 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
         }
 
         # --- DYNAMICS (Line Chart) ---
-        dynamics_data = (
-            period_transactions.annotate(day=TruncDate("date"))
-            .values("day", "type")
+        income_dynamics = income_transactions.annotate(day=TruncDate("date")).values("day").annotate(total=Sum("amount")).order_by("day")
+
+        expense_dynamics = (
+            expense_transactions.annotate(day=TruncDate("date"))
+            .values("day")
             .annotate(total=Sum("amount"))
             .order_by("day")
         )
 
         timeline = {}
 
-        for entry in dynamics_data:
+        for entry in income_dynamics:
             day_str = entry["day"].strftime("%d.%m")
 
             if day_str not in timeline:
                 timeline[day_str] = {"INCOME": 0, "EXPENSE": 0}
+            timeline[day_str]["INCOME"] = float(entry["total"])
 
-            if entry["type"] in ["INCOME", "EXPENSE"]:
-                timeline[day_str][entry["type"]] = float(entry["total"])
+        for entry in expense_dynamics:
+            day_str = entry["day"].strftime("%d.%m")
+            if day_str not in timeline:
+                timeline[day_str] = {"EXPENSE": 0, "INCOME": 0}
+            timeline[day_str]["EXPENSE"] = float(entry["total"])
 
-        dates_labels = list(timeline.keys())
+        dates_labels = sorted(list(timeline.keys()))
         income_series = [timeline[d]["INCOME"] for d in dates_labels]
         expense_series = [timeline[d]["EXPENSE"] for d in dates_labels]
 
