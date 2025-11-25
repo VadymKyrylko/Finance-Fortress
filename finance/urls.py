@@ -5,6 +5,9 @@ from finance.views import (
     AccountListView,
     AnalyticsView,
     CategoryCreateView,
+    CategoryDeleteView,
+    CategoryListView,
+    CategoryUpdateView,
     ExpenseCreateView,
     IncomeCreateView,
     SignUpView,
@@ -34,6 +37,17 @@ urlpatterns = [
     path("acconts/new/", AccountCreateView.as_view(), name="account_create"),
     path(
         "categories/new", CategoryCreateView.as_view(), name="category_create"
+    ),
+    path("categories/", CategoryListView.as_view(), name="category_list"),
+    path(
+        "categories/<int:pk>/edit/",
+        CategoryUpdateView.as_view(),
+        name="category_update",
+    ),
+    path(
+        "categories/<int:pk>/delete",
+        CategoryDeleteView.as_view(),
+        name="category_delete",
     ),
     path(
         "transactions/<int:pk>/edit/",
