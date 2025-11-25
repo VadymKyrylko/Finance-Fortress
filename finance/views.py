@@ -1,9 +1,26 @@
+import calendar
+from datetime import timedelta
+
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView, UpdateView, DeleteView
+from django.utils import timezone
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
 
-from finance.forms import AccountForm, CategoryForm, TransactionForm
+from finance.forms import (
+    AccountForm,
+    AnalyticsFilterForm,
+    CategoryForm,
+    TransactionForm,
+)
 from finance.models import Account, Category, Transaction
 
 
@@ -89,7 +106,7 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
+        kwargs["user"] = self.request.user
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -109,3 +126,144 @@ class TransactionDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         return Transaction.objects.filter(user=self.request.user)
+
+
+class AnalyticsView(LoginRequiredMixin, TemplateView):
+    template_name = "finance/analytics.html"
+
+    def get_date_ranges(self, comparison_type):
+        """
+        Returns a tuple: (start_current, end_current, start_prev, end_prev)
+        """
+        today = timezone.now().date()
+        if comparison_type == "yoy_year":
+            start_curr = today.replace(month=1, day=1)
+            end_curr = today.replace(month=12, day=31)
+            start_prev = start_curr.replace(year=start_curr.year - 1)
+            end_prev = end_curr.replace(year=end_curr.year - 1)
+
+        elif comparison_type == "yoy_month":
+            start_curr = today.replace(day=1)
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            end_curr = today.replace(day=last_day)
+
+            start_prev = start_curr.replace(year=start_curr.year - 1)
+            last_day_prev = calendar.monthrange(
+                start_prev.year, start_prev.month
+            )[1]
+            end_prev = start_prev.replace(day=last_day_prev)
+
+        else:
+            start_curr = today.replace(day=1)
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            end_curr = today.replace(day=last_day)
+
+            first = today.replace(day=1)
+            end_prev = first - timedelta(days=1)
+            start_prev = end_prev.replace(day=1)
+
+        return start_curr, end_curr, start_prev, end_prev
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = AnalyticsFilterForm(self.request.GET, user=self.request.user)
+        comparison_type = self.request.GET.get("comparison_type", "mom")
+        category_id = self.request.GET.get("category")
+
+        start_curr, end_curr, _, _ = self.get_date_ranges(comparison_type)
+
+        period_transactions = Transaction.objects.filter(
+            user=self.request.user, date__range=(start_curr, end_curr)
+        )
+
+        if category_id:
+            period_transactions = period_transactions.filter(
+                category_id=category_id
+            )
+
+        # --- For chart (Income vs Expense vs Balance) ---
+        total_income = (
+            period_transactions.filter(type="INCOME").aggregate(Sum("amount"))[
+                "amount__sum"
+            ]
+            or 0
+        )
+        total_expense = (
+            period_transactions.filter(type="EXPENSE").aggregate(
+                Sum("amount")
+            )["amount__sum"]
+            or 0
+        )
+        total_balance = total_income - total_expense
+
+        context["overview_chart_data"] = {
+            "labels": ["Income", "Expenses", "Difference"],
+            "data": [
+                float(total_income),
+                float(total_expense),
+                float(total_balance),
+            ],
+            "colors": [
+                "rgba(75, 192, 192, 0.7)",
+                "rgba(255, 99, 132, 0.7)",
+                "rgba(54, 162, 235, 0.7)",
+            ],
+        }
+
+        # --- EXPENSES BY CATEGORIES ---
+        expenses_by_cat = (
+            period_transactions.filter(type="EXPENSE")
+            .values("category__name")
+            .annotate(total=Sum("amount"))
+            .order_by("-total")
+        )
+
+        cat_labels = []
+        cat_data = []
+
+        for entry in expenses_by_cat:
+            cat_labels.append(entry["category__name"] or "Without category")
+            cat_data.append(float(entry["total"]))
+
+        context["category_chart_data"] = {
+            "labels": cat_labels,
+            "data": cat_data,
+        }
+
+        # --- DYNAMICS (Line Chart) ---
+        dynamics_data = (
+            period_transactions.annotate(day=TruncDate("date"))
+            .values("day", "type")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+
+        timeline = {}
+
+        for entry in dynamics_data:
+            day_str = entry["day"].strftime("%d.%m")
+
+            if day_str not in timeline:
+                timeline[day_str] = {"INCOME": 0, "EXPENSE": 0}
+
+            if entry["type"] in ["INCOME", "EXPENSE"]:
+                timeline[day_str][entry["type"]] = float(entry["total"])
+
+        dates_labels = list(timeline.keys())
+        income_series = [timeline[d]["INCOME"] for d in dates_labels]
+        expense_series = [timeline[d]["EXPENSE"] for d in dates_labels]
+
+        context["dynamics_chart_data"] = {
+            "labels": dates_labels,
+            "income": income_series,
+            "expense": expense_series,
+        }
+
+        # --- FINAL CONTEXT ---
+        context["form"] = form
+        context["period_label"] = (
+            f"{start_curr.strftime('%d.%m.%Y')}"
+            f" - {end_curr.strftime('%d.%m.%Y')}"
+        )
+
+        return context
