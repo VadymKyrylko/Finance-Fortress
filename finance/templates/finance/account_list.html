@@ -9,18 +9,23 @@ My accounts | Finance Fortress
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="text-primary mb-0">My financial accounts</h1>
 
-    <div class="d-flex gap-2">
-      <a href="{% url 'account_create' %}" class="btn btn-outline-primary">
-        <i class="bi bi-wallet2"></i> New Account
-      </a>
+<div class="d-flex gap-2">
+        <a href="{% url 'account_create' %}" class="btn btn-outline-primary">
+            <i class="bi bi-wallet2"></i> Create account
+        </a>
+        <a href="{% url 'category_create' %}" class="btn btn-outline-primary">
+            <i class="bi bi-tags"></i> Create category
+        </a>
 
-      <a href="{% url 'category_create' %}" class="btn btn-outline-primary">
-        <i class="bi bi-tags"></i> New Category
-      </a>
-
-      <a href="{% url 'transaction_create' %}" class="btn btn-success">
-        <i class="bi bi-plus-lg"></i> New Transaction
-      </a>
+        <a href="{% url 'income_create' %}" class="btn btn-success" title="Income">
+            <i class="bi bi-arrow-down-left"></i> +Income
+        </a>
+        <a href="{% url 'expense_create' %}" class="btn btn-danger" title="Expense">
+            <i class="bi bi-arrow-up-right"></i> -Expense
+        </a>
+        <a href="{% url 'transfer_create' %}" class="btn btn-primary" title="Transfer">
+            <i class="bi bi-arrow-left-right"></i> Transfer
+        </a>
     </div>
   </div>
 </div>

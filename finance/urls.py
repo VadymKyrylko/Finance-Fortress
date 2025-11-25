@@ -5,18 +5,30 @@ from finance.views import (
     AccountListView,
     AnalyticsView,
     CategoryCreateView,
+    ExpenseCreateView,
+    IncomeCreateView,
     SignUpView,
-    TransactionCreateView,
     TransactionDeleteView,
     TransactionUpdateView,
+    TransferCreateView,
 )
 
 urlpatterns = [
     path("", AccountListView.as_view(), name="account_list"),
     path(
-        "transactions/new/",
-        TransactionCreateView.as_view(),
-        name="transaction_create",
+        "transactions/income/",
+        IncomeCreateView.as_view(),
+        name="income_create",
+    ),
+    path(
+        "transactions/expense/",
+        ExpenseCreateView.as_view(),
+        name="expense_create",
+    ),
+    path(
+        "transactions/transfer/",
+        TransferCreateView.as_view(),
+        name="transfer_create",
     ),
     path("signup/", SignUpView.as_view(), name="signup"),
     path("acconts/new/", AccountCreateView.as_view(), name="account_create"),
