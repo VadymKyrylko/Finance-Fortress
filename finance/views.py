@@ -19,7 +19,9 @@ from finance.forms import (
     AccountForm,
     AnalyticsFilterForm,
     CategoryForm,
-    TransactionForm,
+    ExpenseForm,
+    IncomeForm,
+    TransferForm,
 )
 from finance.models import Account, Category, Transaction
 
@@ -42,20 +44,58 @@ class AccountListView(LoginRequiredMixin, ListView):
         return context
 
 
-class TransactionCreateView(LoginRequiredMixin, CreateView):
-    model = Transaction
-    form_class = TransactionForm
-    template_name = "finance/transaction_form.html"
+class BaseTransactionCreateView(LoginRequiredMixin, CreateView):
+    template_name = "finance/form_base.html"
     success_url = reverse_lazy("account_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        form.instance.type = self.transaction_type
+        return super().form_valid(form)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user
         return kwargs
 
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        return super().form_valid(form)
+
+class ExpenseCreateView(BaseTransactionCreateView):
+    model = Transaction
+    form_class = ExpenseForm
+    transaction_type = "EXPENSE"
+    success_url = reverse_lazy("account_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Add Expense"
+        context["btn_text"] = "Save Expense"
+        return context
+
+
+class IncomeCreateView(BaseTransactionCreateView):
+    model = Transaction
+    form_class = IncomeForm
+    transaction_type = "INCOME"
+    success_url = reverse_lazy("account_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Add Income"
+        context["btn_text"] = "Save Income"
+        return context
+
+
+class TransferCreateView(BaseTransactionCreateView):
+    model = Transaction
+    form_class = TransferForm
+    transaction_type = "TRANSFER"
+    success_url = reverse_lazy("account_list")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["title"] = "Add Transfer"
+        context["btn_text"] = "Transfer"
+        return context
 
 
 class SignUpView(CreateView):
@@ -100,9 +140,17 @@ class CategoryCreateView(LoginRequiredMixin, CreateView):
 
 class TransactionUpdateView(LoginRequiredMixin, UpdateView):
     model = Transaction
-    form_class = TransactionForm
     template_name = "finance/form_base.html"
     success_url = reverse_lazy("account_list")
+
+    def get_form_class(self):
+        if self.object.type == "INCOME":
+            return IncomeForm
+        elif self.object.type == "EXPENSE":
+            return ExpenseForm
+        elif self.object.type == "TRANSFER":
+            return TransferForm
+        return ExpenseForm
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -111,8 +159,15 @@ class TransactionUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["title"] = "Update Transaction"
-        context["btn_text"] = "Update Transaction"
+        type_names = {
+            "INCOME": "Update Income",
+            "EXPENSE": "Update Expense",
+            "TRANSFER": "Update Transfer",
+        }
+        context["title"] = type_names.get(
+            self.object.type, "Update Transaction"
+        )
+        context["btn_text"] = "Update"
         return context
 
     def get_queryset(self):
@@ -232,7 +287,12 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
         }
 
         # --- DYNAMICS (Line Chart) ---
-        income_dynamics = income_transactions.annotate(day=TruncDate("date")).values("day").annotate(total=Sum("amount")).order_by("day")
+        income_dynamics = (
+            income_transactions.annotate(day=TruncDate("date"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
 
         expense_dynamics = (
             expense_transactions.annotate(day=TruncDate("date"))
