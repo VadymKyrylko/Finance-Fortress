@@ -4,6 +4,7 @@ from finance.views import (
     AccountCreateView,
     AccountListView,
     AnalyticsView,
+    CalendarView,
     CategoryCreateView,
     CategoryDeleteView,
     CategoryListView,
@@ -12,6 +13,7 @@ from finance.views import (
     IncomeCreateView,
     SignUpView,
     TransactionDeleteView,
+    TransactionDetailsModalView,
     TransactionUpdateView,
     TransferCreateView,
 )
@@ -60,4 +62,10 @@ urlpatterns = [
         name="transaction_delete",
     ),
     path("analytics/", AnalyticsView.as_view(), name="analytics"),
+    path("calendar/", CalendarView.as_view(), name="calendar"),
+    path(
+        "calendar/details/",
+        TransactionDetailsModalView.as_view(),
+        name="transaction_details_modal",
+    ),
 ]
