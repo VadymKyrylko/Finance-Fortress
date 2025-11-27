@@ -1,5 +1,5 @@
 import calendar
-from datetime import timedelta
+import datetime
 
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -7,6 +7,7 @@ from django.db.models import Sum
 from django.db.models.functions import TruncDate
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -58,6 +59,28 @@ class BaseTransactionCreateView(LoginRequiredMixin, CreateView):
         kwargs["user"] = self.request.user
         return kwargs
 
+    def get_initial(self):
+        """
+        Allows prefilling of form fields via GET URL parameters.
+        For example: /transactions/expense/?date=2023-11-05&category=4
+        """
+        initial = super().get_initial()
+        if "date" in self.request.GET:
+            initial["date"] = self.request.GET.get("date")
+        if "category" in self.request.GET:
+            initial["category"] = self.request.GET.get("category")
+        return initial
+
+    def get_success_url(self):
+        next_url = self.request.POST.get("next")
+
+        if next_url and url_has_allowed_host_and_scheme(
+            url=next_url,
+            allowed_hosts={self.request.get_host()},
+        ):
+            return next_url
+        return super().get_success_url()
+
 
 class ExpenseCreateView(BaseTransactionCreateView):
     model = Transaction
@@ -95,6 +118,28 @@ class TransferCreateView(BaseTransactionCreateView):
         context = super().get_context_data(**kwargs)
         context["title"] = "Add Transfer"
         context["btn_text"] = "Transfer"
+        return context
+
+
+class TransactionDetailsModalView(LoginRequiredMixin, TemplateView):
+    template_name = "finance/partials/transaction_details_modal.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        date_str = self.request.GET.get("date")
+        category_id = self.request.GET.get("category")
+
+        transactions = Transaction.objects.filter(
+            user=self.request.user,
+            date__date=date_str,
+            category_id=category_id,
+            type="EXPENSE",
+        ).select_related("account")
+        category = Category.objects.get(id=category_id)
+
+        context["transactions"] = transactions
+        context["selected_date"] = date_str
+        context["category"] = category
         return context
 
 
@@ -249,7 +294,7 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
             end_curr = today.replace(day=last_day)
 
             first = today.replace(day=1)
-            end_prev = first - timedelta(days=1)
+            end_prev = first - datetime.timedelta(days=1)
             start_prev = end_prev.replace(day=1)
 
         return start_curr, end_curr, start_prev, end_prev
@@ -368,4 +413,69 @@ class AnalyticsView(LoginRequiredMixin, TemplateView):
             f" - {end_curr.strftime('%d.%m.%Y')}"
         )
 
+        return context
+
+
+class CalendarView(LoginRequiredMixin, TemplateView):
+    template_name = "finance/calendar.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        today = timezone.now().date()
+        year = int(self.request.GET.get("year", today.year))
+        month = int(self.request.GET.get("month", today.month))
+
+        _, num_days = calendar.monthrange(year, month)
+        days = [
+            datetime.date(year, month, day) for day in range(1, num_days + 1)
+        ]
+
+        categories = Category.objects.filter(user=user, type="EXPENSE")
+        transactions = Transaction.objects.filter(
+            user=user,
+            date__year=year,
+            date__month=month,
+            type="EXPENSE",
+        ).select_related("account")
+
+        data_matrix = {}
+        for transaction in transactions:
+            date = (
+                transaction.date.date()
+                if isinstance(transaction.date, datetime.datetime)
+                else transaction.date
+            )
+            key = (date, transaction.category_id)
+            if key not in data_matrix:
+                data_matrix[key] = {"transactions": [], "total": 0}
+            data_matrix[key]["transactions"].append(transaction)
+            data_matrix[key]["total"] += transaction.amount
+        calendar_rows = []
+        for day in days:
+            row = {"date": day, "cells": []}
+            for category in categories:
+                cell_data = data_matrix.get((day, category.id))
+                row["cells"].append(
+                    {
+                        "category": category,
+                        "date": day,
+                        "data": cell_data,
+                    }
+                )
+            calendar_rows.append(row)
+        context.update(
+            {
+                "calendar_rows": calendar_rows,
+                "categories": categories,
+                "current_date": datetime.date(year, month, 1),
+                "next_month": (
+                    datetime.date(year, month, 1) + datetime.timedelta(days=32)
+                ).replace(day=1),
+                "prev_month": (
+                    datetime.date(year, month, 1) - datetime.timedelta(days=1)
+                ).replace(day=1),
+            }
+        )
         return context
